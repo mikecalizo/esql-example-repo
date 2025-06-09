@@ -1,6 +1,4 @@
 
-
-
 Use-case: Lookup Join to find cryptomining software or malware installed in the systems
 
 the firewalls do classify some domains as cryptomining that a user may just stumble across. We use ES|QL to keep an eye on the devices that are consistently accessing cyrptomining domains and therefore 
