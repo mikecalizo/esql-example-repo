@@ -1,5 +1,6 @@
 # esql-example-repo
 These ar collection of demo artifacts for ES|QL
+A repo that includes sample data and ES|QL query for quick and dirty demo to showcase the power of ES|QL
 
 Use-cases:
 
