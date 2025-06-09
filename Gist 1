@@ -1,3 +1,8 @@
+Use-case:
+
+the firewalls do classify some domains as cryptomining that a user may just stumble across. We use ES|QL to keep an eye on the devices that are consistently accessing cyrptomining domains and therefore 
+may have cyrptomining software or malware installed.
+
 POST /_bulk
 { "index": { "_index": "firewall-logs" } }
 { "device_id": "dev-001", "timestamp": "2025-06-08T09:00:00Z", "domain": "crypto-evil.com", "category": "cryptomining" }
@@ -57,7 +62,10 @@ PUT device-inventory
   }
 }
 
-Threat Hunting
+Threat Hunting: 
+Imagine you’re a school IT administrator monitoring student devices.
+A student’s laptop is showing up on both lan.1 (student VLAN) and lan.5 (admin VLAN).
+That’s suspicious — so this ES|QL query quickly surfaces such devices for investigation
 
 PUT _data_stream/logs-fortinet.traffic-demo
 
