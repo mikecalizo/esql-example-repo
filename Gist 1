@@ -56,3 +56,54 @@ PUT device-inventory
     }
   }
 }
+
+Threat Hunting
+
+PUT _data_stream/logs-fortinet.traffic-demo
+
+POST /_bulk
+{ "create": { "_index": "logs-fortinet.traffic-demo" } }
+{ "source": { "mac": "00:11:22:33:44:55", "address": "HOST1", "user": { "name": "alice" } }, "observer": { "ingress": { "interface": { "name": ["lan.1", "lan.2"] } } }, "fortinet": { "firewall": { "srchwvendor": "HP", "osname": "FortiOS 7.2" } }, "school": { "name": "Greenfield" }, "@timestamp": "2025-06-08T09:00:00Z" }
+{ "create": { "_index": "logs-fortinet.traffic-demo" } }
+{ "source": { "mac": "66:77:88:99:AA:BB", "address": "HOST2", "user": { "name": "bob" } }, "observer": { "ingress": { "interface": { "name": "lan.3" } } }, "fortinet": { "firewall": { "srchwvendor": "Dell", "osname": "FortiOS 7.0" } }, "school": { "name": "Sunnydale" }, "@timestamp": "2025-06-08T09:05:00Z" }
+{ "create": { "_index": "logs-fortinet.traffic-demo" } }
+{ "source": { "mac": "CC:DD:EE:FF:00:11", "address": "HOST3", "user": { "name": "charlie" } }, "observer": { "ingress": { "interface": { "name": ["lan.1", "lan.2"] } } }, "fortinet": { "firewall": { "srchwvendor": "Cisco", "osname": "FortiOS 7.2" } }, "school": { "name": "Lakeside" }, "@timestamp": "2025-06-08T09:10:00Z" }
+{ "create": { "_index": "logs-fortinet.traffic-demo" } }
+{ "source": { "mac": "AA:BB:CC:DD:EE:FF", "address": "HOST4", "user": { "name": "dave" } }, "observer": { "ingress": { "interface": { "name": ["lan.1", "lan.5"] } } }, "fortinet": { "firewall": { "srchwvendor": "Aruba", "osname": "FortiOS 7.1" } }, "school": { "name": "Hillside" }, "@timestamp": "2025-06-08T09:20:00Z" }
+{ "create": { "_index": "logs-fortinet.traffic-demo" } }
+{ "source": { "mac": "11:22:33:44:55:66", "address": "HOST5", "user": { "name": "eve" } }, "observer": { "ingress": { "interface": { "name": "lan.3" } } }, "fortinet": { "firewall": { "srchwvendor": "Juniper", "osname": "FortiOS 7.0" } }, "school": { "name": "Riverdale" }, "@timestamp": "2025-06-08T09:25:00Z" }
+{ "create": { "_index": "logs-fortinet.traffic-demo" } }
+{ "source": { "mac": "77:88:99:AA:BB:CC", "address": "HOST6", "user": { "name": "frank" } }, "observer": { "ingress": { "interface": { "name": "lan.4" } } }, "fortinet": { "firewall": { "srchwvendor": "Huawei", "osname": "FortiOS 7.2" } }, "school": { "name": "Hilltop" }, "@timestamp": "2025-06-08T09:30:00Z" }
+{ "create": { "_index": "logs-fortinet.traffic-demo" } }
+{ "source": { "mac": "88:99:AA:BB:CC:DD", "address": "HOST7", "user": { "name": "grace" } }, "observer": { "ingress": { "interface": { "name": "lan.2" } } }, "fortinet": { "firewall": { "srchwvendor": "PaloAlto", "osname": "FortiOS 7.3" } }, "school": { "name": "Valley" }, "@timestamp": "2025-06-08T09:35:00Z" }
+{ "create": { "_index": "logs-fortinet.traffic-demo" } }
+{ "source": { "mac": "99:AA:BB:CC:DD:EE", "address": "HOST8", "user": { "name": "heidi" } }, "observer": { "ingress": { "interface": { "name": "lan.5" } } }, "fortinet": { "firewall": { "srchwvendor": "CheckPoint", "osname": "FortiOS 7.1" } }, "school": { "name": "Highland" }, "@timestamp": "2025-06-08T09:40:00Z" }
+
+FROM logs-fortinet.traffic-demo
+| WHERE 
+    source.mac IS NOT NULL
+| MV_EXPAND observer.ingress.interface.name
+| WHERE 
+    observer.ingress.interface.name IN ("lan.1", "lan.5")
+| STATS 
+    COUNT()
+  BY 
+    source.mac, 
+    observer.ingress.interface.name, 
+    source.user.name,
+    hostname = TO_LOWER(source.address), 
+    fortinet.firewall.srchwvendor, 
+    fortinet.firewall.osname, 
+    school.name
+| STATS 
+    int_list = VALUES(observer.ingress.interface.name),
+    int_count = COUNT_DISTINCT(observer.ingress.interface.name),
+    users = VALUES(source.user.name), 
+    hostnames = VALUES(hostname), 
+    hwvendor = VALUES(fortinet.firewall.srchwvendor), 
+    OS = VALUES(fortinet.firewall.osname)
+  BY 
+    school.name, 
+    source.mac
+| WHERE 
+    int_count >= 2
