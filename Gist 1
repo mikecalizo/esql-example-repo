@@ -115,3 +115,46 @@ FROM logs-fortinet.traffic-demo
     source.mac
 | WHERE 
     int_count >= 2
+
+
+Use-case: At risk users. We've calculated a logarithmically weighted metric that reflects the number of "newly observed" domains a user accesses vs the amount of unique hours they access them across. This used to be a dashboard we checked daily, but now we can do this with an alerting rule as ES|QL 
+allows us to set much more complex thresholds rather than just document count > X.
+
+
+POST _bulk
+{ "index": { "_index": "user-activity-demo" } }
+{ "user.name": "alice", "@timestamp": "2025-06-08T09:00:00Z", "domain": "newsite1.com", "is_new_domain": true, "hour_of_day": 9 }
+{ "index": { "_index": "user-activity-demo" } }
+{ "user.name": "alice", "@timestamp": "2025-06-08T10:00:00Z", "domain": "newsite2.com", "is_new_domain": true, "hour_of_day": 10 }
+{ "index": { "_index": "user-activity-demo" } }
+{ "user.name": "bob", "@timestamp": "2025-06-08T11:00:00Z", "domain": "facebook.com", "is_new_domain": false, "hour_of_day": 11 }
+{ "index": { "_index": "user-activity-demo" } }
+{ "user.name": "bob", "@timestamp": "2025-06-08T12:00:00Z", "domain": "newsite3.com", "is_new_domain": true, "hour_of_day": 12 }
+{ "index": { "_index": "user-activity-demo" } }
+{ "user.name": "charlie", "@timestamp": "2025-06-08T13:00:00Z", "domain": "newsite4.com", "is_new_domain": true, "hour_of_day": 13 }
+{ "index": { "_index": "user-activity-demo" } }
+{ "user.name": "charlie", "@timestamp": "2025-06-08T14:00:00Z", "domain": "newsite5.com", "is_new_domain": true, "hour_of_day": 14 }
+{ "index": { "_index": "user-activity-demo" } }
+{ "user.name": "charlie", "@timestamp": "2025-06-08T14:30:00Z", "domain": "newsite6.com", "is_new_domain": true, "hour_of_day": 14 }
+
+Option 1: Simple ratio of newly observed domains per unique hour:
+
+FROM user-activity-demo
+| WHERE is_new_domain == true
+| STATS 
+    new_domains = COUNT(domain),
+    unique_hours = COUNT_DISTINCT(hour_of_day)
+  BY user.name
+| EVAL risk_score = new_domains / unique_hours
+| SORT risk_score DESC
+
+Option 2: If you want to emphasize new domains with a bit more weight, you could use subtraction:
+
+FROM user-activity-demo
+| WHERE is_new_domain == true
+| STATS 
+    new_domains = COUNT(domain),
+    unique_hours = COUNT_DISTINCT(hour_of_day)
+  BY user.name
+| EVAL risk_score = new_domains - unique_hours
+| SORT risk_score DESC
