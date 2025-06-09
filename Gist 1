@@ -1,3 +1,40 @@
+Lookup Join Example
+
+POST /_bulk
+{ "index": { "_index": "firewall-logs" } }
+{ "device_id": "dev-001", "timestamp": "2025-06-08T09:00:00Z", "domain": "crypto-evil.com", "category": "cryptomining" }
+{ "index": { "_index": "firewall-logs" } }
+{ "device_id": "dev-002", "timestamp": "2025-06-08T09:05:00Z", "domain": "news-site.com", "category": "news" }
+{ "index": { "_index": "firewall-logs" } }
+{ "device_id": "dev-001", "timestamp": "2025-06-08T09:10:00Z", "domain": "another-crypto.com", "category": "cryptomining" }
+{ "index": { "_index": "firewall-logs" } }
+{ "device_id": "dev-003", "timestamp": "2025-06-08T09:20:00Z", "domain": "crypto-evil.com", "category": "cryptomining" }
+{ "index": { "_index": "firewall-logs" } }
+{ "device_id": "dev-004", "timestamp": "2025-06-08T09:30:00Z", "domain": "sports-site.com", "category": "sports" }
+
+POST /_bulk
+{ "index": { "_index": "device-inventory" } }
+{ "device_id": "dev-001", "user": "Alice", "department": "Finance" }
+{ "index": { "_index": "device-inventory" } }
+{ "device_id": "dev-002", "user": "Bob", "department": "Engineering" }
+{ "index": { "_index": "device-inventory" } }
+{ "device_id": "dev-003", "user": "Carol", "department": "IT" }
+{ "index": { "_index": "device-inventory" } }
+{ "device_id": "dev-004", "user": "Dave", "department": "HR" }
+
+
+POST /_query
+{
+  "query": """
+    FROM firewall-logs
+| WHERE category == "cryptomining"
+| LOOKUP JOIN device-inventory ON device_id
+| KEEP device_id, domain, user, department
+| SORT device_id ASC
+  """
+}
+
+
 Use-case:
 
 the firewalls do classify some domains as cryptomining that a user may just stumble across. We use ES|QL to keep an eye on the devices that are consistently accessing cyrptomining domains and therefore 
