@@ -161,3 +161,36 @@ FROM user-activity-demo
   BY user.name
 | EVAL risk_score = new_domains - unique_hours
 | SORT risk_score DESC
+
+
+Use-case: Staff accessing DGA domains over several hours. We see DGA domains frequently and some of it is just ad-tracking. However we can use ES|QL to spot machines that are accessing DGA domains over multiple hours which may indicate malware on their device.
+
+POST _bulk
+{ "index": { "_index": "user-activity-dga-demo" } }
+{ "user.name": "alice", "@timestamp": "2025-06-08T09:00:00Z", "domain": "xj3ksd.com", "domain_type": "dga", "hour_of_day": 9 }
+{ "index": { "_index": "user-activity-dga-demo" } }
+{ "user.name": "alice", "@timestamp": "2025-06-08T10:00:00Z", "domain": "pq9ndq.com", "domain_type": "dga", "hour_of_day": 10 }
+{ "index": { "_index": "user-activity-dga-demo" } }
+{ "user.name": "bob", "@timestamp": "2025-06-08T11:00:00Z", "domain": "ads.com", "domain_type": "ad", "hour_of_day": 11 }
+{ "index": { "_index": "user-activity-dga-demo" } }
+{ "user.name": "bob", "@timestamp": "2025-06-08T12:00:00Z", "domain": "x9q3sd.com", "domain_type": "dga", "hour_of_day": 12 }
+{ "index": { "_index": "user-activity-dga-demo" } }
+{ "user.name": "bob", "@timestamp": "2025-06-08T13:00:00Z", "domain": "x9q3sd.com", "domain_type": "dga", "hour_of_day": 13 }
+{ "index": { "_index": "user-activity-dga-demo" } }
+{ "user.name": "charlie", "@timestamp": "2025-06-08T14:00:00Z", "domain": "xj3ksd.com", "domain_type": "dga", "hour_of_day": 14 }
+{ "index": { "_index": "user-activity-dga-demo" } }
+{ "user.name": "charlie", "@timestamp": "2025-06-08T14:30:00Z", "domain": "adtracking.com", "domain_type": "ad", "hour_of_day": 14 }
+
+POST /_query
+{
+  "query": """
+FROM user-activity-dga-demo
+| WHERE domain_type == "dga"
+| STATS 
+    dga_domains = COUNT_DISTINCT(domain),
+    unique_hours = COUNT_DISTINCT(hour_of_day)
+  BY user.name
+| WHERE unique_hours >= 2
+| SORT unique_hours DESC
+  """
+}
